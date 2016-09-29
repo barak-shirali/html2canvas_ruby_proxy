@@ -41,7 +41,7 @@ class ImageProxy  < EM::Connection
 
       img_url = CGI::parse(@http_query_string)['url'][0]
 
-      resp.headers={'Access-Control-Max-Age' => 5*60*1000, 
+      resp.headers={'Access-Control-Max-Age' => 5*60*1000,
                       'Access-Control-Allow-Origin' => '*',
                       'Access-Control-Request-Method' => '*',
                       'Access-Control-Allow-Methods' =>'OPTIONS, GET',
@@ -62,10 +62,18 @@ class ImageProxy  < EM::Connection
         http = EventMachine::HttpRequest.new(img_url).get
 
         http.callback do |response|
-          content = 'data:image/'+ext+';base64,'+Base64.encode64(http.response.chomp)
-          resp.content_type 'application/json'
-          resp.content = "#{callback}(#{content.to_json})"
-          resp.send_response
+
+          if (callback)
+            content = Base64.encode64(http.response.chomp).gsub("\n", "")
+            result = { :content => content, :type => 'image/'+ext }
+            resp.content_type 'application/json'
+            resp.content = "#{callback}(#{result.to_json})"
+            resp.send_response
+          else
+            resp.content_type 'image/'+ext
+            resp.content = http.response
+            resp.send_response
+          end
         end
 
       end
